@@ -4,6 +4,11 @@ import requests
 from bs4 import BeautifulSoup
 from io import StringIO
 import datetime
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+fmp_key = os.getenv("FMP_KEY")
 
 ## Getting 30 Day Volatility
 def getkdayVolatility (stock: str, k:int):
@@ -72,7 +77,7 @@ def getkdayVolatility (stock: str, k:int):
     puts = tables[1]
 
     ## get Price
-    url = 'https://financialmodelingprep.com/api/v3/quote/{}?apikey=27c9e25e9855b9f7194cb65d119b5f47'.format(stock)
+    url = 'https://financialmodelingprep.com/api/v3/quote/{}?apikey={}'.format(stock,fmp_key)
 
     stockPrice = requests.get(url).json()[0]['price']
 
@@ -85,7 +90,7 @@ def getkdayVolatility (stock: str, k:int):
 
 ## IV for companies in the SPY
 def getCompaniesETF(ETF: str):
-    url = 'https://financialmodelingprep.com/api/v3/etf-holder/{}?apikey=27c9e25e9855b9f7194cb65d119b5f47'.format(ETF)
+    url = 'https://financialmodelingprep.com/api/v3/etf-holder/{}?apikey={}'.format(ETF,fmp_key)
 
     companiesInETF = pd.DataFrame(requests.get(url).json())[['asset']]
     companiesInETF.drop(index=companiesInETF[(companiesInETF['asset'] == '') | (companiesInETF['asset'] == ' ')].index, inplace=True)
@@ -98,21 +103,21 @@ def getCompaniesProfiles(ETF_requested: str):
 
     companyProfiles = {}
     for asset in companyList:
-        url = 'https://financialmodelingprep.com/api/v4/company-outlook?symbol={}&apikey=27c9e25e9855b9f7194cb65d119b5f47'.format(asset)
+        url = 'https://financialmodelingprep.com/api/v4/company-outlook?symbol={}&apikey={}'.format(asset,fmp_key)
         companyProfiles[asset] = requests.get(url).json()
 
     return companyProfiles
 
 def getCompanyProfile(stock_requested: str):
     companyProfile = {}
-    url = 'https://financialmodelingprep.com/api/v4/company-outlook?symbol={}&apikey=27c9e25e9855b9f7194cb65d119b5f47'.format(stock_requested)
+    url = 'https://financialmodelingprep.com/api/v4/company-outlook?symbol={}&apikey={}'.format(stock_requested,fmp_key)
     companyProfile = requests.get(url).json()
 
     return companyProfile
 
 def getBeta(companyProfiles: dict, stock: str):
     if companyProfiles == None or (not (stock in companyProfiles.keys())):
-        url = 'https://financialmodelingprep.com/api/v4/company-outlook?symbol={}&apikey=27c9e25e9855b9f7194cb65d119b5f47'.format(stock)
+        url = 'https://financialmodelingprep.com/api/v4/company-outlook?symbol={}&apikey={}'.format(stock,fmp_key)
         return requests.get(url=url).json()['profile']['beta']
     else:
         return companyProfiles[stock]['profile']['beta']
@@ -124,7 +129,7 @@ def getHistoricalVolatility(stock: str):
     fromDate = yearAgo.strftime('%Y-%m-%d')
 
     #historical price data 
-    url = 'https://financialmodelingprep.com/api/v3/historical-price-full/{}?from={}&apikey=27c9e25e9855b9f7194cb65d119b5f47'.format(stock,fromDate)
+    url = 'https://financialmodelingprep.com/api/v3/historical-price-full/{}?from={}&apikey={}'.format(stock,fromDate,fmp_key)
     df = pd.DataFrame(requests.get(url).json()['historical']).iloc[::-1].reset_index(drop=True)
 
     #calculate log returns
@@ -141,20 +146,20 @@ def getHistoricalVolatility(stock: str):
 
 ## Earnings Calendar
 def getEarningsCalendar():
-    url = 'https://financialmodelingprep.com/api/v3/earning_calendar?from=2024-00-00&apikey=27c9e25e9855b9f7194cb65d119b5f47'
+    url = 'https://financialmodelingprep.com/api/v3/earning_calendar?from=2024-00-00&apikey={}'.format(fmp_key)
     earningsCalendar = pd.DataFrame(requests.get(url).json())
 
     return earningsCalendar
 
 ## News
 def getCompanyNews(stock_requested: str):
-    url = 'https://financialmodelingprep.com/api/v3/stock_news?tickers={}&page=1&from=2024-10-01&apikey=27c9e25e9855b9f7194cb65d119b5f47'.format(stock_requested)
+    url = 'https://financialmodelingprep.com/api/v3/stock_news?tickers={}&page=1&from=2024-10-01&apikey={}'.format(stock_requested,fmp_key)
     news = pd.DataFrame(requests.get(url).json())
     return news
 
 ## Economics Calendar
 def getEconomicsCalendar():
-    url = 'https://financialmodelingprep.com/api/v3/economic_calendar?from=2024-00-00&apikey=27c9e25e9855b9f7194cb65d119b5f47'
+    url = 'https://financialmodelingprep.com/api/v3/economic_calendar?from=2024-00-00&apikey={}'.format(fmp_key)
 
     EconomicCalendar = pd.DataFrame(requests.get(url).json())
     usEconomicCalendar = EconomicCalendar[EconomicCalendar['country'] == 'US']
@@ -163,13 +168,13 @@ def getEconomicsCalendar():
 
 ## Tresury Rates
 def getTresuryRates():
-    url = 'https://financialmodelingprep.com/api/v4/treasury?from=2024-00-00&apikey=27c9e25e9855b9f7194cb65d119b5f47'
+    url = 'https://financialmodelingprep.com/api/v4/treasury?from=2024-00-00&apikey={}'.format(fmp_key)
 
     return pd.DataFrame(requests.get(url).json())
 
 ## Market risk premium
 def getMarketRiskPremium():
-    url = 'https://financialmodelingprep.com/api/v4/market_risk_premium?apikey=27c9e25e9855b9f7194cb65d119b5f47'
+    url = 'https://financialmodelingprep.com/api/v4/market_risk_premium?apikey={}'.format(fmp_key)
 
     usRiskPremium = pd.DataFrame(requests.get(url).json())
     usRiskPremium = usRiskPremium[usRiskPremium['country'] == 'United States']
