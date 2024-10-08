@@ -7,11 +7,11 @@ import datetime
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+load_dotenv('.env')
 fmp_key = os.getenv("FMP_KEY")
 
 ## Getting 30 Day Volatility
-def getkdayVolatility (stock: str, k:int):
+def getkdayVolatility (stock: str, k:int) -> int:
     def getUnixNearestFriday(days: int):
         # Get the date 30 days from now
         today = datetime.date.today()
@@ -60,7 +60,6 @@ def getkdayVolatility (stock: str, k:int):
         soup = BeautifulSoup(response.content, 'html.parser')
 
         # Get actual dates and option chain
-        print(getSpecificTimestamp(soup,k))
         url = 'https://finance.yahoo.com/quote/{}/options/?straddle=false&type=all&date={}'.format(stock,getSpecificTimestamp(soup,k))
         response = requests.get(url, headers=headers)
 
@@ -89,7 +88,7 @@ def getkdayVolatility (stock: str, k:int):
     return monthlyVolatility
 
 ## IV for companies in the SPY
-def getCompaniesETF(ETF: str):
+def getCompaniesETF(ETF: str) -> pd.DataFrame:
     url = 'https://financialmodelingprep.com/api/v3/etf-holder/{}?apikey={}'.format(ETF,fmp_key)
 
     companiesInETF = pd.DataFrame(requests.get(url).json())[['asset']]
@@ -98,7 +97,7 @@ def getCompaniesETF(ETF: str):
     return companiesInETF
 
 ## Beta
-def getCompaniesProfiles(ETF_requested: str):
+def getCompaniesProfiles(ETF_requested: str) -> dict:
     companyList = getCompaniesETF(ETF_requested)['asset']
 
     companyProfiles = {}
@@ -108,14 +107,14 @@ def getCompaniesProfiles(ETF_requested: str):
 
     return companyProfiles
 
-def getCompanyProfile(stock_requested: str):
+def getCompanyProfile(stock_requested: str) -> dict:
     companyProfile = {}
     url = 'https://financialmodelingprep.com/api/v4/company-outlook?symbol={}&apikey={}'.format(stock_requested,fmp_key)
     companyProfile = requests.get(url).json()
 
     return companyProfile
 
-def getBeta(companyProfiles: dict, stock: str):
+def getBeta(companyProfiles: dict, stock: str) -> float:
     if companyProfiles == None or (not (stock in companyProfiles.keys())):
         url = 'https://financialmodelingprep.com/api/v4/company-outlook?symbol={}&apikey={}'.format(stock,fmp_key)
         return requests.get(url=url).json()['profile']['beta']
@@ -123,7 +122,7 @@ def getBeta(companyProfiles: dict, stock: str):
         return companyProfiles[stock]['profile']['beta']
     
 ## Historical Volatility
-def getHistoricalVolatility(stock: str):
+def getHistoricalVolatility(stock: str) -> float:
     # calculate a year ago
     yearAgo = datetime.datetime.today() - datetime.timedelta(days = 365)
     fromDate = yearAgo.strftime('%Y-%m-%d')
@@ -145,20 +144,20 @@ def getHistoricalVolatility(stock: str):
 
 
 ## Earnings Calendar
-def getEarningsCalendar():
+def getEarningsCalendar() -> pd.DataFrame:
     url = 'https://financialmodelingprep.com/api/v3/earning_calendar?from=2024-00-00&apikey={}'.format(fmp_key)
     earningsCalendar = pd.DataFrame(requests.get(url).json())
 
     return earningsCalendar
 
 ## News
-def getCompanyNews(stock_requested: str):
+def getCompanyNews(stock_requested: str) -> pd.DataFrame:
     url = 'https://financialmodelingprep.com/api/v3/stock_news?tickers={}&page=1&from=2024-10-01&apikey={}'.format(stock_requested,fmp_key)
     news = pd.DataFrame(requests.get(url).json())
     return news
 
 ## Economics Calendar
-def getEconomicsCalendar():
+def getEconomicsCalendar() -> pd.DataFrame:
     url = 'https://financialmodelingprep.com/api/v3/economic_calendar?from=2024-00-00&apikey={}'.format(fmp_key)
 
     EconomicCalendar = pd.DataFrame(requests.get(url).json())
@@ -167,13 +166,13 @@ def getEconomicsCalendar():
     return usEconomicCalendar.reset_index(drop=True)
 
 ## Tresury Rates
-def getTresuryRates():
+def getTresuryRates() -> pd.DataFrame:
     url = 'https://financialmodelingprep.com/api/v4/treasury?from=2024-00-00&apikey={}'.format(fmp_key)
 
     return pd.DataFrame(requests.get(url).json())
 
 ## Market risk premium
-def getMarketRiskPremium():
+def getMarketRiskPremium() -> pd.DataFrame:
     url = 'https://financialmodelingprep.com/api/v4/market_risk_premium?apikey={}'.format(fmp_key)
 
     usRiskPremium = pd.DataFrame(requests.get(url).json())
