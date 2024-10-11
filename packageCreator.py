@@ -2,6 +2,7 @@ import functions as volt
 from dotenv import load_dotenv
 import os
 import datetime
+import pandas as pd
 
 fmp_key = volt.fmp_key
 
