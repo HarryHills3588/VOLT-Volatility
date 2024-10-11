@@ -122,13 +122,14 @@ def getBeta(companyProfiles: dict, stock: str) -> float:
         return companyProfiles[stock]['profile']['beta']
     
 ## Historical Volatility
-def getHistoricalVolatility(stock: str) -> float:
+def getHistoricalVolatility(stock: str, days:int,timeAgo = datetime.datetime.today()) -> float:
     # calculate a year ago
-    yearAgo = datetime.datetime.today() - datetime.timedelta(days = 365)
+    yearAgo = timeAgo - datetime.timedelta(days = days)
     fromDate = yearAgo.strftime('%Y-%m-%d')
+    toDate = timeAgo.strftime('%Y-%m-%d')
 
     #historical price data 
-    url = 'https://financialmodelingprep.com/api/v3/historical-price-full/{}?from={}&apikey={}'.format(stock,fromDate,fmp_key)
+    url = 'https://financialmodelingprep.com/api/v3/historical-price-full/{}?from={}&to={}&apikey={}'.format(stock,fromDate,toDate,fmp_key)
     df = pd.DataFrame(requests.get(url).json()['historical']).iloc[::-1].reset_index(drop=True)
 
     #calculate log returns
@@ -145,7 +146,9 @@ def getHistoricalVolatility(stock: str) -> float:
 
 ## Earnings Calendar
 def getEarningsCalendar() -> pd.DataFrame:
-    url = 'https://financialmodelingprep.com/api/v3/earning_calendar?from=2024-00-00&apikey={}'.format(fmp_key)
+    toTime = (datetime.datetime.now() + datetime.timedelta(7)).strftime('%Y-%m-%d')
+    fromTime = (datetime.datetime.now()).strftime('%Y-%m-%d')
+    url = 'https://financialmodelingprep.com/api/v3/earning_calendar?from={}&to={}&apikey={}'.format(fromTime,toTime,fmp_key)
     earningsCalendar = pd.DataFrame(requests.get(url).json())
 
     return earningsCalendar
@@ -161,7 +164,7 @@ def getEconomicsCalendar() -> pd.DataFrame:
     url = 'https://financialmodelingprep.com/api/v3/economic_calendar?from=2024-00-00&apikey={}'.format(fmp_key)
 
     EconomicCalendar = pd.DataFrame(requests.get(url).json())
-    usEconomicCalendar = EconomicCalendar[EconomicCalendar['country'] == 'US']
+    usEconomicCalendar = EconomicCalendar[EconomicCalendar['country'] == 'US'].drop(columns=['country','currency']).iloc[::-1]
 
     return usEconomicCalendar.reset_index(drop=True)
 
@@ -178,3 +181,19 @@ def getMarketRiskPremium() -> pd.DataFrame:
     usRiskPremium = pd.DataFrame(requests.get(url).json())
     usRiskPremium = usRiskPremium[usRiskPremium['country'] == 'United States']
     return usRiskPremium
+
+#Market Index
+def getMarketIndex(symbol) -> pd.Series:
+    fmp_key = "27c9e25e9855b9f7194cb65d119b5f47"
+    url = 'https://financialmodelingprep.com/api/v3/quotes/index?apikey={}'.format(fmp_key)
+
+    marketIndeces = pd.DataFrame(requests.get(url).json())
+    return marketIndeces[marketIndeces['symbol'] == '^'+symbol].reset_index(drop=True).iloc[0]
+
+def getPrices(symbol: str,fromDate = datetime.datetime.today() - datetime.timedelta(365)) -> pd.DataFrame:
+    fromdt = fromDate.strftime('%Y-%m-%d')
+
+    #historical price data 
+    url = 'https://financialmodelingprep.com/api/v3/historical-price-full/{}?from={}&apikey={}'.format(symbol,fromdt,fmp_key)
+    df = pd.DataFrame(requests.get(url).json()['historical']).reset_index(drop=True)
+    return df
