@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import os
 import datetime
 import pandas as pd
+import time
 
 fmp_key = volt.fmp_key
 
@@ -27,30 +28,6 @@ def IVScreener(fund: str):
 
     return companiesInFund.sort_values('IV',ascending=False) 
         
-# Earnings impact analysis ##--------------- TODO -----------------------
-def earningsImpactAnalysis():
-    # get high-impact companies
-    QQQCompanies = volt.getCompaniesETF('QQQ')['asset'].tolist()
-    spyCompanies = volt.getCompaniesETF('SPY')['asset'].tolist()
-    spyQQQSymbols = set(QQQCompanies + spyCompanies)
-
-    # get earnings calendar
-    earningsCalendar = volt.getEarningsCalendar()
-    potentialUSSymbols = earningsCalendar[earningsCalendar['symbol'].str.contains(r'^[A-Za-z]+$', na=False)]
-
-    #US symbols annoncing earnings this week
-    USSymbols = potentialUSSymbols[potentialUSSymbols['symbol'].isin(spyQQQSymbols)]
-
-
-    USSymbols
-
-    ## -----------NEXT STEP-------------
-    ## get market value for straddle 
-    ## calculate implied move
-    ## calculate historical move ((MAY NOT BE MVP))
-    print(USSymbols)
-
-
 #Sector Risk Profiles
 def getSectorBetas():
     sectorList = ['XLK','XLV','XLF','XLY','XLP','XLE','XLI','XLB','XLU','XLRE','XLC']
@@ -163,3 +140,33 @@ def getHighImpactEconomicEvents():
         returnDict[event] = rowDict
 
     return str(returnDict)
+
+def getEarningsImpact():
+    QQQCompanies = volt.getCompaniesETF('QQQ')['asset'].tolist()
+    spyCompanies = volt.getCompaniesETF('SPY')['asset'].tolist()
+    spyQQQSymbols = set(QQQCompanies + spyCompanies)
+
+    earningsCalendar = volt.getEarningsCalendar()
+    potentialUSSymbols = earningsCalendar[earningsCalendar['symbol'].str.contains(r'^[A-Za-z]+$', na=False)]
+
+    USSymbols = potentialUSSymbols[potentialUSSymbols['symbol'].isin(spyQQQSymbols)]
+
+    impliedVolatilites = volt.get30dayIVList(USSymbols['symbol'].tolist())
+    time.sleep(60)
+
+    df = pd.DataFrame(list(impliedVolatilites.items()),columns=['ticker','IV'])
+    df = df[df['IV'] != 1.0].sort_values('IV',ascending=False)
+
+    if len(df) < 5:
+        df = df[0:len(df)]
+    else:
+        df = df[0:5]
+
+    df = df.reset_index(drop=True)
+    for i in df.index:
+        ticker = df.iloc[i]['ticker']
+        date = earningsCalendar[earningsCalendar['symbol'] == ticker]['date'].values[0]
+        df.loc[i, 'date'] = date
+        df.loc[i, 'impliedMove'] = volt.getImpliedMove(ticker)
+
+    return df

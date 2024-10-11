@@ -3,12 +3,12 @@ import numpy as np
 import requests
 from bs4 import BeautifulSoup
 from io import StringIO
-import datetime
 from datetime import datetime
 from datetime import timedelta
 from dotenv import load_dotenv
 import os
 from scipy.stats import norm
+import time
 
 load_dotenv('.env')
 fmp_key = os.getenv("FMP_KEY")
@@ -30,8 +30,8 @@ proxies = {
 def getkdayVolatility (stock: str, k:int) -> int:
     def getUnixNearestFriday(days: int):
         # Get the date 30 days from now
-        today = datetime.date.today()
-        target_date = today + datetime.timedelta(days=days)
+        today = datetime.today()
+        target_date = today + timedelta(days=days)
 
         # Find the nearest Friday
         days_ahead = 4 - target_date.weekday()  # Friday is weekday 4
@@ -40,7 +40,7 @@ def getkdayVolatility (stock: str, k:int) -> int:
 
         nearest_friday = target_date + datetime.timedelta(days=days_ahead)
 
-        nearest_friday_as_DT = datetime.datetime.combine(nearest_friday,datetime.datetime.min.time())
+        nearest_friday_as_DT = datetime.combine(nearest_friday,datetime.min.time())
 
         return (int(nearest_friday_as_DT.timestamp()))
     
@@ -52,14 +52,14 @@ def getkdayVolatility (stock: str, k:int) -> int:
         for tag in dateTags:
             try:
                 #append dates from date selection menu as datetimes
-                dates.append(datetime.datetime.strptime(tag.text.strip(), '%b %d, %Y'))
+                dates.append(datetime.strptime(tag.text.strip(), '%b %d, %Y'))
             except Exception:
                 None
         
         # Find minima for date difference
         for i in range(1,len(dates)):
-            currentDiff = abs(dates[i].timestamp() - (datetime.datetime.today() + datetime.timedelta(k)).timestamp())
-            previousDiff = abs(dates[i-1].timestamp() - (datetime.datetime.today() + datetime.timedelta(k)).timestamp())
+            currentDiff = abs(dates[i].timestamp() - (datetime.today() + timedelta(k)).timestamp())
+            previousDiff = abs(dates[i-1].timestamp() - (datetime.today() + timedelta(k)).timestamp())
 
             if currentDiff < previousDiff:
                 smallestIndex = i
@@ -248,6 +248,46 @@ def get30dayIV(symbol):
 
     return returnIV
 
+def get30dayIVList(tickerList: list):
+    first = datetime.now()
+    counter = 0
+
+    etfIV = {}
+    for company in tickerList:
+        print(company)
+        if counter < 4:
+            try:
+                IV = get30dayIV(company)
+                print(IV)
+                etfIV[company] = IV
+            except:
+                etfIV[company] = np.nan
+
+            counter += 1
+            second = datetime.now()
+        else:
+            try:
+                IV = get30dayIV(company)
+                print(IV)
+                etfIV[company] = IV
+            except:
+                etfIV[company] = np.nan
+
+            timediff = second - first
+            timetosleep = 65 - timediff.total_seconds()
+
+            if timetosleep > 0 :
+                print(timetosleep)
+                time.sleep(timetosleep)
+            else:
+                print('sleeping for minute')
+                time.sleep(60)
+
+            first = datetime.now()
+            counter = 0
+
+    return etfIV
+
 ## IV for companies in the SPY
 def getCompaniesETF(ETF: str) -> pd.DataFrame:
     url = 'https://financialmodelingprep.com/api/v3/etf-holder/{}?apikey={}'.format(ETF,fmp_key)
@@ -307,8 +347,8 @@ def getHistoricalVolatility(stock: str, days:int,timeAgo = datetime.today()) -> 
 
 ## Earnings Calendar
 def getEarningsCalendar() -> pd.DataFrame:
-    toTime = (datetime.datetime.now() + datetime.timedelta(7)).strftime('%Y-%m-%d')
-    fromTime = (datetime.datetime.now()).strftime('%Y-%m-%d')
+    toTime = (datetime.now() + timedelta(7)).strftime('%Y-%m-%d')
+    fromTime = (datetime.now()).strftime('%Y-%m-%d')
     url = 'https://financialmodelingprep.com/api/v3/earning_calendar?from={}&to={}&apikey={}'.format(fromTime,toTime,fmp_key)
     earningsCalendar = pd.DataFrame(requests.get(url).json())
 
@@ -359,5 +399,24 @@ def getPrices(symbol: str,fromDate = datetime.today() - timedelta(365)) -> pd.Da
     df = pd.DataFrame(requests.get(url).json()['historical']).reset_index(drop=True)
     return df
 
-print('trying')
-print(get30dayIV('MSFT'))
+def getImpliedMove(symbol):
+    optionsChain = getOptionsChain(symbol=symbol)
+
+    optionDate = getClosestDate(optionsChain,5)
+    optionsWithinDate = optionsChain[optionsChain['expiration_date']==optionDate]
+
+    strikePrice = getClosestStrikePrice(optionsWithinDate,symbol=symbol)
+    straddle = optionsWithinDate[optionsWithinDate['strike_price'] == strikePrice]
+
+    prices = []
+    if len(straddle) != 0:
+        for index, option in straddle.iterrows():
+            ticker = option['ticker'].replace('O:','')
+            price = getMarketValue(ticker)
+            if price != np.nan:
+                prices.append(price)
+        straddlePrice = np.sum(prices)
+    else:
+        straddlePrice = np.nan
+
+    return straddlePrice / getPrice(symbol)
