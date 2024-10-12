@@ -38,7 +38,7 @@ def getkdayVolatility (stock: str, k:int) -> int:
         if days_ahead < 0:
             days_ahead += 7  # Go to the next Friday if target_date is past Friday
 
-        nearest_friday = target_date + datetime.timedelta(days=days_ahead)
+        nearest_friday = target_date + timedelta(days=days_ahead)
 
         nearest_friday_as_DT = datetime.combine(nearest_friday,datetime.min.time())
 
@@ -70,14 +70,14 @@ def getkdayVolatility (stock: str, k:int) -> int:
     url = 'https://finance.yahoo.com/quote/{}/options/?straddle=false&type=all&date={}'.format(stock,getUnixNearestFriday(1))
     headers = {'User-Agent': 'Mozilla/5.0'}
 
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers,proxies=proxies)
 
     if response.status_code == 200:
         soup = BeautifulSoup(response.content, 'html.parser')
 
         # Get actual dates and option chain
         url = 'https://finance.yahoo.com/quote/{}/options/?straddle=false&type=all&date={}'.format(stock,getSpecificTimestamp(soup,k))
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers,proxies=proxies)
 
         if response.status_code == 200:
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -325,7 +325,7 @@ def getBeta(companyProfiles: dict, stock: str) -> float:
 ## Historical Volatility
 def getHistoricalVolatility(stock: str, days:int,timeAgo = datetime.today()) -> float:
     # calculate a year ago
-    yearAgo = timeAgo - datetime.timedelta(days = days)
+    yearAgo = timeAgo - timedelta(days = days)
     fromDate = yearAgo.strftime('%Y-%m-%d')
     toDate = timeAgo.strftime('%Y-%m-%d')
 

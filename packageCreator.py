@@ -4,29 +4,36 @@ import os
 import datetime
 import pandas as pd
 import time
+import numpy as np
 
 fmp_key = volt.fmp_key
 
 def generateMarketVolatilityIndexes() -> str:
     ticker = 'SPY'
 
-    monthIV = volt.getkdayVolatility(ticker,30)
-    twoMonthIV = volt.getkdayVolatility(ticker,60)
-    threeMonthIV = volt.getkdayVolatility(ticker,90)
+    monthIV = round(volt.getkdayVolatility(ticker,30),2)
+    twoMonthIV = round(volt.getkdayVolatility(ticker,60),2)
+    threeMonthIV = round(volt.getkdayVolatility(ticker,90),2)
+    
+    termStructre = {
+        'Volatility Term Structure SPY': {
+            '30-day IV': monthIV,
+            '60-day IV': twoMonthIV,
+            '90-day IV': threeMonthIV
+        }
+    }
 
-    return 'Volatility Term Structure ' + str(ticker) +' '+ str(monthIV) +' '+ str(twoMonthIV) +' '+ str(threeMonthIV)
+    return str(termStructre)
 
-def IVScreener(fund: str):
-    companiesInFund = volt.getCompaniesETF(fund)
+def highImpactStocksIV():
+    spy = volt.getCompaniesETF('SPY')['asset'].tolist()
 
-    IVList = []
-    for company in companiesInFund['asset']:
-        companyIV = volt.getkdayVolatility(company,30)
-        IVList.append(companyIV)
+    spyImpliedVolatilities = volt.get30dayIVList(spy)
+    df = pd.DataFrame(list(spyImpliedVolatilities.items()),columns=['ticker','IV'])
+    df = df.dropna()
+    df = df[df['IV'] != 1.0].sort_values('IV',ascending=False)
 
-    companiesInFund['IV'] = IVList
-
-    return companiesInFund.sort_values('IV',ascending=False) 
+    return df
         
 #Sector Risk Profiles
 def getSectorBetas():
@@ -170,3 +177,34 @@ def getEarningsImpact():
         df.loc[i, 'impliedMove'] = volt.getImpliedMove(ticker)
 
     return df
+
+def getMarketExpectations():
+    spyIV = volt.getkdayVolatility('SPY',30) / 100
+    qqqIV = volt.getkdayVolatility('QQQ',30) /100
+
+    spyHV = volt.getHistoricalVolatility('SPY',30)
+    qqqHV = volt.getHistoricalVolatility('QQQ',30)
+
+    if spyIV == 1.0 or qqqIV == 1.0 or abs(spyIV) == np.inf or abs(qqqIV) == np.inf or spyIV == np.nan or qqqIV == np.nan:
+        spyIV = 'unable to retrieve'
+        qqqIV = 'unable to retrieve'
+        spyIVHVratio =  spyHV
+        QQQIVHVratio =   qqqHV
+    else:
+        spyIVHVratio = spyIV / spyHV
+        QQQIVHVratio = qqqIV / qqqHV
+
+    volatilities = {
+        'SPY': {
+            'Current Implied Volatility': spyIV,
+            'Current 30-day Historical Volatility': spyHV,
+            'IV/HV Ratio': spyIVHVratio
+        },
+        'QQQ': {
+            'Current Implied Volatility': qqqIV,
+            'Current 30-day Historical Volatility': qqqHV,
+            'IV/HV Ratio': QQQIVHVratio
+        }
+    }
+
+    return str(volatilities)
