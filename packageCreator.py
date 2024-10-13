@@ -31,7 +31,7 @@ def highImpactStocksIV():
     spyImpliedVolatilities = volt.get30dayIVList(spy)
     df = pd.DataFrame(list(spyImpliedVolatilities.items()),columns=['ticker','IV'])
     df = df.dropna()
-    df = df[df['IV'] != 1.0].sort_values('IV',ascending=False)
+    df = df[(df['IV'] != 1.0) & abs(df['IV']) != np.nan].sort_values('IV',ascending=False)
 
     return df
         
@@ -118,14 +118,14 @@ def getInterestRateEnviroment():
 
     month3 = tresuryRates.iloc[-1].to_dict()
 
-    return {
+    return str({
         'Treasury Rates': {
             'Today': today,
             'One Week Ago': week,
             'One Month Ago': month1,
             'Three Months Ago': month3
         }
-    }
+    })
 
 def getHighImpactEconomicEvents():
     economicCalendar = volt.getEconomicsCalendar()
@@ -222,3 +222,7 @@ def getImpactNews():
 
         for index, article in news.iterrows():
             returnNews[company].append(article['text'])
+
+    return str(returnNews)
+
+# print(highImpactStocksIV())

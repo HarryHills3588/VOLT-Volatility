@@ -358,7 +358,7 @@ def getEarningsCalendar() -> pd.DataFrame:
 def getCompanyNews(stock_requested: str) -> pd.DataFrame:
     fromDate = (datetime.today() - timedelta(8)).strftime('%Y-%m-%d')
     toDate = datetime.today().strftime('%Y-%m-%d')
-    url = 'https://financialmodelingprep.com/api/v3/stock_news?tickers={}&page=1&from={}&to={}&apikey={}'.format(stock_requested,fromDate,toDate,fmp_key)
+    url = 'https://financialmodelingprep.com/api/v3/stock_news?tickers={}&page=0&from={}&to={}&apikey={}'.format(stock_requested,fromDate,toDate,fmp_key)
     news = pd.DataFrame(requests.get(url).json())
     return news
 

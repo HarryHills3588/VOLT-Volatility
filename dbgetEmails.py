@@ -12,8 +12,9 @@ with conn.cursor() as cursor:
     cursor.execute("SELECT * FROM emails")
 
     results = cursor.fetchall()
+    
 conn.close()
 
 df = pd.DataFrame(results, columns=['ID','emails'])
 
-print(df.iloc[0]['emails'])
+print(df)
