@@ -208,3 +208,17 @@ def getMarketExpectations():
     }
 
     return str(volatilities)
+
+def getImpactNews():
+    returnNews = {}
+    companyList = volt.getCompaniesETF('SPY')['asset'].tolist()[0:20]
+    companyList.insert(0,'SPY')
+    companyList.insert(0,'QQQ')
+
+    for company in companyList:
+        returnNews[company] = []
+        news = pd.DataFrame(volt.getCompanyNews(company))
+        news = news[news['site'] != 'youtube.com']
+
+        for index, article in news.iterrows():
+            returnNews[company].append(article['text'])
