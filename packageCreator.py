@@ -31,9 +31,10 @@ def highImpactStocksIV():
     spyImpliedVolatilities = volt.get30dayIVList(spy)
     df = pd.DataFrame(list(spyImpliedVolatilities.items()),columns=['ticker','IV'])
     df = df.dropna()
-    df = df[(df['IV'] != 1.0) & abs(df['IV']) != np.nan].sort_values('IV',ascending=False)
+    df = df[~np.isinf(df['IV'])]
+    df = df[df['IV'] != 1.0].sort_values('IV',ascending=False)
 
-    return df
+    return str(df.to_dict())
         
 #Sector Risk Profiles
 def getSectorBetas():
@@ -162,6 +163,7 @@ def getEarningsImpact():
     time.sleep(60)
 
     df = pd.DataFrame(list(impliedVolatilites.items()),columns=['ticker','IV'])
+    df = df[~np.isinf(df['IV'])]
     df = df[df['IV'] != 1.0].sort_values('IV',ascending=False)
 
     if len(df) < 5:
@@ -176,7 +178,7 @@ def getEarningsImpact():
         df.loc[i, 'date'] = date
         df.loc[i, 'impliedMove'] = volt.getImpliedMove(ticker)
 
-    return df
+    return str((df.dropna()).to_dict())
 
 def getMarketExpectations():
     spyIV = volt.getkdayVolatility('SPY',30) / 100
@@ -225,4 +227,33 @@ def getImpactNews():
 
     return str(returnNews)
 
-# print(highImpactStocksIV())
+print(highImpactStocksIV())
+
+############################
+#         TODO             #
+############################
+############################
+#         TODO             #
+############################
+packet = f'''
+This data represents the volatility term structure for the SPY (an ETF tracking the S&P 500), with implied volatility (IV) levels over different time horizons.
+{generateMarketVolatilityIndexes()}
+This data reprsents a volatility watchlist for the companies announcing earnings this week with the highest implied volatility and their implied moves because of reporting their earnings
+{getEarningsImpact()}
+The following is a economic calendar which tracks teh release date of important economic indicators, as well as their estimates and preivious values
+{getHighImpactEconomicEvents()}
+This data represents U.S. Treasury yields across various maturities, showing how rates have changed over different timeframes: today, one week ago, one month ago, and three months ago.
+{getInterestRateEnviroment()}
+This data represents sectors across the stock market and their sector betas
+{getSectorBetas()}
+This data represents the beta values relative to the SP500 of influential companies in the three largest sectors of the stock market: Technology, Financial Services, Healthcare
+{getHighImpactBetas()}
+This data represents key statistics related to the VIX (CBOE Volatility Index)
+{getMacroRisk()}
+This data provides insights into the volatility of the stock market, with metrics for the VIX, S&P 500 Realized Volatility, and the VVIX (Volatility of Volatility Index)
+{getMarketSnapshot()}
+This data presents the implied volatility and historical volatility for two popular exchange-traded funds (ETFs): SPY (S&P 500 ETF) and QQQ (NASDAQ-100 ETF). This data is used to percieve market expectation
+{getMarketExpectations()}
+This data represents the recent news for two of the largest indices and largest companies in the stock market
+{getImpactNews()}
+'''
