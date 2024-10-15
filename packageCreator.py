@@ -227,15 +227,9 @@ def getImpactNews():
 
     return str(returnNews)
 
-print(highImpactStocksIV())
-
-############################
-#         TODO             #
-############################
-############################
-#         TODO             #
-############################
 packet = f'''
+This dataset represents ticker symbols of stocks from the S&P 500 and their corresponding Implied Volatility (IV) values.
+{highImpactStocksIV()}
 This data represents the volatility term structure for the SPY (an ETF tracking the S&P 500), with implied volatility (IV) levels over different time horizons.
 {generateMarketVolatilityIndexes()}
 This data reprsents a volatility watchlist for the companies announcing earnings this week with the highest implied volatility and their implied moves because of reporting their earnings
@@ -257,3 +251,4 @@ This data presents the implied volatility and historical volatility for two popu
 This data represents the recent news for two of the largest indices and largest companies in the stock market
 {getImpactNews()}
 '''
+print(packet)

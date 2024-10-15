@@ -254,11 +254,9 @@ def get30dayIVList(tickerList: list):
 
     etfIV = {}
     for company in tickerList:
-        print(company)
         if counter < 4:
             try:
                 IV = get30dayIV(company)
-                print(IV)
                 etfIV[company] = IV
             except:
                 etfIV[company] = np.nan
@@ -268,7 +266,6 @@ def get30dayIVList(tickerList: list):
         else:
             try:
                 IV = get30dayIV(company)
-                print(IV)
                 etfIV[company] = IV
             except:
                 etfIV[company] = np.nan
