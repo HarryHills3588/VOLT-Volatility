@@ -5,6 +5,7 @@ import datetime
 import pandas as pd
 import time
 import numpy as np
+from openai import OpenAI
 
 fmp_key = volt.fmp_key
 
@@ -227,28 +228,92 @@ def getImpactNews():
 
     return str(returnNews)
 
-packet = f'''
-This dataset represents ticker symbols of stocks from the S&P 500 and their corresponding Implied Volatility (IV) values.
-{highImpactStocksIV()}
-This data represents the volatility term structure for the SPY (an ETF tracking the S&P 500), with implied volatility (IV) levels over different time horizons.
-{generateMarketVolatilityIndexes()}
-This data reprsents a volatility watchlist for the companies announcing earnings this week with the highest implied volatility and their implied moves because of reporting their earnings
-{getEarningsImpact()}
-The following is a economic calendar which tracks teh release date of important economic indicators, as well as their estimates and preivious values
-{getHighImpactEconomicEvents()}
-This data represents U.S. Treasury yields across various maturities, showing how rates have changed over different timeframes: today, one week ago, one month ago, and three months ago.
-{getInterestRateEnviroment()}
-This data represents sectors across the stock market and their sector betas
-{getSectorBetas()}
-This data represents the beta values relative to the SP500 of influential companies in the three largest sectors of the stock market: Technology, Financial Services, Healthcare
-{getHighImpactBetas()}
-This data represents key statistics related to the VIX (CBOE Volatility Index)
-{getMacroRisk()}
-This data provides insights into the volatility of the stock market, with metrics for the VIX, S&P 500 Realized Volatility, and the VVIX (Volatility of Volatility Index)
-{getMarketSnapshot()}
-This data presents the implied volatility and historical volatility for two popular exchange-traded funds (ETFs): SPY (S&P 500 ETF) and QQQ (NASDAQ-100 ETF). This data is used to percieve market expectation
-{getMarketExpectations()}
-This data represents the recent news for two of the largest indices and largest companies in the stock market
-{getImpactNews()}
-'''
-print(packet)
+def chatGPTFinancialCompletion(data :str):
+    client = OpenAI()
+    completion = client.chat.completions.create(
+    model="gpt-4o-mini",
+    max_tokens=16000,
+    temperature=0.75,
+    messages=[
+        {"role": "system", "content": "you are a financial analyst working for the VOLT volatility newsletter, your job is to get data and synthesize it into a newsletter providing tables and insight on volatility. Make sure to provide your analysis for the data "},
+        {
+            "role": "user",
+            "content": f"take all this data and synthesize it into a financial newsletter section focused on volatility. Data: {data}"
+        }
+    ])
+
+    return completion.choices[0].message.content.replace('```html','').replace('```','')
+
+def chatGPTCondensationCompletion(data :str):
+    client = OpenAI()
+    completion = client.chat.completions.create(
+    model="gpt-4o-mini",
+    max_tokens=16000,
+    temperature=0.75,
+    messages=[
+        {"role": "system", "content": "you are a financial analyst working for the VOLT volatility newsletter, your job is to get sections written independently and synthesize it into a single, cohesive newsletter providing tables and insight on volatility. Make sure to provide your analysis for the data "},
+        {
+            "role": "user",
+            "content": f"take all these sections and synthesize it into a financial newsletter focused on volatility the newsletter should be about 1300 words. Data: {data}"
+        }
+    ])
+
+    return completion.choices[0].message.content.replace('```html','').replace('```','')
+
+def chatGPTHTMLCompletion(data :str):
+    client = OpenAI()
+    completion = client.chat.completions.create(
+    model="gpt-4o-mini",
+    max_tokens=16000,
+    temperature=0.05,
+    messages=[
+        {"role": 'system','content':"markdown to html converter, please provide html only in response."},
+        {
+        "role": "user",
+        "content": f"please convert this markdown to html, please be sure to copy everything and include inline CSS to copy the markdown style, no image tags: {data}"
+        }
+    ])
+
+    return completion.choices[0].message.content.replace('```html','').replace('```','')
+
+def chatGPTCSSCompletion(data :str):
+    client = OpenAI()
+    completion = client.chat.completions.create(
+    model="gpt-4o-mini",
+    max_tokens=16000,
+    temperature=0.05,
+    messages=[
+        {"role": 'system','content':"you are a html internal css to html inline CSS converter, please provide html with inline CSS only in response."},
+        {
+        "role": "user",
+        "content": f"please convert this html with internal css to html with inline CSS, please be sure to copy everything and include inline CSS: {data}"
+        }
+    ])
+
+    return completion.choices[0].message.content.replace('```html','').replace('```','')
+
+newsLetterPrompts = {
+    # 'SP500_IV': f'This dataset represents ticker symbols of stocks from the S&P 500 and their corresponding Implied Volatility (IV) values. {highImpactStocksIV()}',
+    # 'term_structure': f'This data represents the volatility term structure for the SPY (an ETF tracking the S&P 500), with implied volatility (IV) levels over different time horizons. {generateMarketVolatilityIndexes()}',
+    'earnings_impact': f'This data reprsents a volatility watchlist for the companies announcing earnings this week with the highest implied volatility and their implied moves because of reporting their earnings{getEarningsImpact()}',
+    'high_impact_economic_events': f'The following is a economic calendar which tracks teh release date of important economic indicators, as well as their estimates and preivious values {getHighImpactEconomicEvents()}',
+    'Interest_rate_enviroment': f'This data represents U.S. Treasury yields across various maturities, showing how rates have changed over different timeframes: today, one week ago, one month ago, and three months ago. {getInterestRateEnviroment()}',
+    'sector_betas': f'This data represents sectors across the stock market and their sector betas {getSectorBetas()}',
+    'high-impact-betas': f'This data represents the beta values relative to the SP500 of influential companies in the three largest sectors of the stock market: Technology, Financial Services, Healthcare {getHighImpactBetas()}',
+    'macro_risk': f'This data represents key statistics related to the VIX (CBOE Volatility Index) {getMacroRisk()}',
+    'market_snapshot': f'This data provides insights into the volatility of the stock market, with metrics for the VIX, S&P 500 Realized Volatility, and the VVIX (Volatility of Volatility Index) {getMarketSnapshot()}',
+    'market_expectations': f'This data presents the implied volatility and historical volatility for two popular exchange-traded funds (ETFs): SPY (S&P 500 ETF) and QQQ (NASDAQ-100 ETF). This data is used to percieve market expectation {getMarketExpectations()}',
+    'impact_news': f'This data represents the recent news for two of the largest indices and largest companies in the stock market {getImpactNews()}'
+}
+
+newsLetterSections = {}
+for key in newsLetterPrompts.keys():
+    newsLetterSections[key] = chatGPTFinancialCompletion(newsLetterPrompts[key])
+
+newsLetterMarkdown = chatGPTCondensationCompletion(str(newsLetterSections))
+
+newsLetterHTML = chatGPTHTMLCompletion(newsLetterMarkdown)
+
+newsLetterHTMLCSS = chatGPTCSSCompletion(newsLetterHTML)
+
+print(newsLetterHTMLCSS)
