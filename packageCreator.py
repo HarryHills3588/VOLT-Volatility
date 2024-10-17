@@ -275,7 +275,7 @@ def chatGPTHTMLCompletion(data :str):
         {"role": 'system','content':"markdown to html converter, please provide html only in response."},
         {
         "role": "user",
-        "content": f"please convert this markdown to html, please be sure to copy everything and include inline CSS to copy the markdown style, no image tags: {data}"
+        "content": f"please convert this markdown to html, please be sure to copy everything and include inline CSS to copy the markdown style, make sure to include the logo with the tag <img src='https://drive.google.com/uc?export=view&id=1ravESqgux1BWw73aRDQjrLDZmpJxE2_k' alt='VOLT Logo' style='max-width: 200px; height: auto;'>: {data}"
         }
     ])
 
