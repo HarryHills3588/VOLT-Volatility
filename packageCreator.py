@@ -6,8 +6,13 @@ import pandas as pd
 import time
 import numpy as np
 from openai import OpenAI
+from supabase import create_client
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 fmp_key = volt.fmp_key
+supaUrl = os.getenv('SUPA_URL')
+supaKey = os.getenv('SUPA_KEY')
 
 def generateMarketVolatilityIndexes() -> str:
     ticker = 'SPY'
@@ -293,8 +298,8 @@ def chatGPTCSSCompletion(data :str):
     return completion.choices[0].message.content.replace('```html','').replace('```','')
 
 newsLetterPrompts = {
-    # 'SP500_IV': f'This dataset represents ticker symbols of stocks from the S&P 500 and their corresponding Implied Volatility (IV) values. {highImpactStocksIV()}',
-    # 'term_structure': f'This data represents the volatility term structure for the SPY (an ETF tracking the S&P 500), with implied volatility (IV) levels over different time horizons. {generateMarketVolatilityIndexes()}',
+    'SP500_IV': f'This dataset represents ticker symbols of stocks from the S&P 500 and their corresponding Implied Volatility (IV) values. {highImpactStocksIV()}',
+    'term_structure': f'This data represents the volatility term structure for the SPY (an ETF tracking the S&P 500), with implied volatility (IV) levels over different time horizons. {generateMarketVolatilityIndexes()}',
     'earnings_impact': f'This data reprsents a volatility watchlist for the companies announcing earnings this week with the highest implied volatility and their implied moves because of reporting their earnings{getEarningsImpact()}',
     'high_impact_economic_events': f'The following is a economic calendar which tracks teh release date of important economic indicators, as well as their estimates and preivious values {getHighImpactEconomicEvents()}',
     'Interest_rate_enviroment': f'This data represents U.S. Treasury yields across various maturities, showing how rates have changed over different timeframes: today, one week ago, one month ago, and three months ago. {getInterestRateEnviroment()}',
@@ -317,3 +322,25 @@ newsLetterHTML = chatGPTHTMLCompletion(newsLetterMarkdown)
 newsLetterHTMLCSS = chatGPTCSSCompletion(newsLetterHTML)
 
 print(newsLetterHTMLCSS)
+
+supabase = create_client(supaUrl,supaKey)
+data = supabase.table('emails').select('email').execute()
+df = pd.DataFrame(data.data)
+emailList = df['email'].tolist()
+
+print(emailList)
+
+message = Mail(
+    from_email='Volt@voltvolatility.com',
+    to_emails=emailList,
+    subject='Your Weekly Volt Volatility Newsletter',
+    html_content=newsLetterHTML)
+
+try:
+    sg = SendGridAPIClient(os.getenv('EMAIL_KEY'))
+    response = sg.send(message)
+    print(response.status_code)
+    print(response.body)
+    print(response.headers)
+except Exception as e:
+    print(e)
